@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}{{ dossier.name }} — Ralph Search{% endblock %}
+
+{% block content %}
+<div class="detail-header">
+    <a href="/" class="back-link">&larr; Back to overview</a>
+    <h1>{{ dossier.name }}</h1>
+    <div class="detail-badges">
+        {% if dossier.priority_score is defined and dossier.priority_score is not none %}
+        <span class="score-badge score-large" style="background:{{ dossier.priority_score|score_color }}">
+            {{ dossier.priority_score }}/10
+        </span>
+        {% endif %}
+        {% if dossier.recommendation %}
+        <span class="rec-badge {{ dossier.recommendation|recommendation_class }}">
+            {{ dossier.recommendation }}
+        </span>
+        {% endif %}
+        {% if dossier.date %}
+        <span class="date-badge">{{ dossier.date }}</span>
+        {% endif %}
+    </div>
+    {% if dossier.summary %}
+    <p class="detail-summary">{{ dossier.summary }}</p>
+    {% endif %}
+</div>
+
+<div class="detail-body">
+    {{ body_html|safe }}
+</div>
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}{{ meta.title }} — Ralph Search{% endblock %}
+
+{% block content %}
+<div class="meta-bar">
+    <div class="meta-item">
+        <span class="meta-label">Search</span>
+        <span class="meta-value">{{ meta.title }}</span>
+    </div>
+    <div class="meta-item">
+        <span class="meta-label">Dossiers</span>
+        <span class="meta-value" id="dossier-count">{{ dossiers|length }}</span>
+    </div>
+    {% if meta.session_count is defined %}
+    <div class="meta-item">
+        <span class="meta-label">Sessions</span>
+        <span class="meta-value">{{ meta.session_count }}</span>
+    </div>
+    {% endif %}
+    {% if meta.last_session is defined %}
+    <div class="meta-item">
+        <span class="meta-label">Last Run</span>
+        <span class="meta-value">{{ meta.last_session }}</span>
+    </div>
+    {% endif %}
+    <div class="meta-item live-indicator" id="live-indicator">
+        <span class="live-dot"></span>
+        <span class="meta-value">Live</span>
+    </div>
+</div>
+
+<div class="card-list">
+    {% for d in dossiers %}
+    <div class="card">
+        <div class="card-header">
+            <a class="card-name" href="/dossier/{{ d._filename }}">{{ d.name }}</a>
+            {% if d.priority_score is defined and d.priority_score is not none %}
+            <span class="score-badge" style="background:{{ d.priority_score|score_color }}">
+                {{ d.priority_score }}
+            </span>
+            {% else %}
+            <span class="score-badge score-na">—</span>
+            {% endif %}
+            {% if d.recommendation %}
+            <span class="rec-badge {{ d.recommendation|recommendation_class }}">
+                {{ d.recommendation }}
+            </span>
+            {% endif %}
+        </div>
+        {% if d.summary %}
+        <p class="card-summary">{{ d.summary }}</p>
+        {% endif %}
+        {% if d.get("scores", []) %}
+        <div class="card-scores">
+            {% for s in d.get("scores", []) %}
+            <span class="score-pill" title="{{ s.comment }}">
+                <span class="score-pill-label">{{ s.criterion }}</span>
+                <span class="score-pill-value" style="background:{{ s.score|score_color }}">{{ s.score }}</span>
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+{% if not dossiers %}
+<div class="empty-state">
+    <p>No dossiers found yet. Start the search loop to generate dossiers.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    const POLL_INTERVAL = 30000;
+    const indicator = document.getElementById('live-indicator');
+
+    function refresh() {
+        fetch('/api/dossiers')
+            .then(r => r.json())
+            .then(data => {
+                // Flash the indicator
+                indicator.classList.add('live-pulse');
+                setTimeout(() => indicator.classList.remove('live-pulse'), 1000);
+
+                // Update count
+                const countEl = document.getElementById('dossier-count');
+                if (countEl) countEl.textContent = data.dossiers.length;
+
+                // If dossier count changed, reload the page for a full refresh
+                const currentCards = document.querySelectorAll('.card').length;
+                if (data.dossiers.length !== currentCards) {
+                    location.reload();
+                }
+            })
+            .catch(() => {
+                indicator.classList.add('live-error');
+            });
+    }
+
+    setInterval(refresh, POLL_INTERVAL);
+})();
+</script>
+{% endblock %}
